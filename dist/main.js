@@ -26,7 +26,7 @@ eval("/* module decorator */ module = __webpack_require__.nmd(module);\nvar __WE
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
-eval("\nvar __importDefault = (this && this.__importDefault) || function (mod) {\n    return (mod && mod.__esModule) ? mod : { \"default\": mod };\n};\nexports.__esModule = true;\nvar lodash_1 = __importDefault(__webpack_require__(/*! lodash */ \"./node_modules/lodash/lodash.js\"));\nfunction component() {\n    var element = document.createElement(\"div\");\n    // Lodash, now imported by this script\n    element.innerHTML = lodash_1[\"default\"].join([\"Hello\", \"webpackzz\"], \" \");\n    return element;\n}\ndocument.body.appendChild(component());\n\n\n//# sourceURL=webpack://webpack-demo/./src/index.js?");
+eval("\nvar __importDefault = (this && this.__importDefault) || function (mod) {\n    return (mod && mod.__esModule) ? mod : { \"default\": mod };\n};\nexports.__esModule = true;\nvar lodash_1 = __importDefault(__webpack_require__(/*! lodash */ \"./node_modules/lodash/lodash.js\"));\nfunction component() {\n    var element = document.createElement(\"div\");\n    // Lodash, now imported by this script\n    element.innerHTML = lodash_1[\"default\"].join([\"Hello\", \"webpack\"], \" \");\n    return element;\n}\ndocument.body.appendChild(component());\n\n\n//# sourceURL=webpack://webpack-demo/./src/index.js?");
 
 /***/ })
 

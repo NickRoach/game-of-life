@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
-    "esModuleInterop": true,
-    "moduleResolution": "Node"
+    "esModuleInterop": true
   },
-  "files": ["./src/index.ts"]
+  "include": ["./src/**/*.ts"]
 }
