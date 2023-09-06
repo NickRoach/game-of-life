@@ -1,15 +1,29 @@
-let lineLength = window.innerWidth / 3
 let start: number
 let canvas: HTMLCanvasElement
 let ctx: CanvasRenderingContext2D
 let lastFrame = 0
 let row = 0
 const backgroundColor = "#000000"
-const cellColor = "turquoise"
+const cellColor = "#03A062"
 let direction = "down"
-const showGrid = false
-const boxSize = 3
+const showGrid = true
+const boxSize = 10
+const frameCadence = 100
+let paused = true
 let boxes: boolean[][] = [[], []]
+const buttonBarHeight = 69
+let buttonWidth: number
+let buttonHeight: number
+let startPause: {
+	xStart: number
+	yStart: number
+}
+
+// start/pause
+// reset
+// faster
+// slower
+// step forward
 
 const resizeCanvas = () => {
 	canvas.height = window.innerHeight - 4
@@ -31,12 +45,16 @@ const renderGrid = () => {
 	for (let i = 0; i <= canvas.width; i += boxSize) {
 		ctx.beginPath()
 		ctx.moveTo(i, 0)
-		ctx.lineTo(i, canvas.height)
+		ctx.lineTo(
+			i,
+			Math.floor((canvas.height - buttonBarHeight - boxSize) / boxSize) *
+				boxSize
+		)
 		ctx.stroke()
 	}
 
 	// draw horizontal lines
-	for (let i = 0; i < canvas.height; i += boxSize) {
+	for (let i = 0; i < canvas.height - buttonBarHeight; i += boxSize) {
 		ctx.beginPath()
 		ctx.moveTo(0, i)
 		ctx.lineTo(canvas.width, i)
@@ -77,28 +95,32 @@ const getNeighbors = (boxes, x, y) => {
 
 const setBoxes = () => {
 	const xBoxes = Math.floor(canvas.width / boxSize)
-	const yBoxes = Math.floor(canvas.height / boxSize)
+	const yBoxes = Math.floor((canvas.height - buttonBarHeight) / boxSize)
 	for (let x = 0; x <= xBoxes; x++) {
 		boxes[x] = []
 		for (let y = 0; y <= yBoxes; y++) {
 			boxes[x][y] = false
-			if (Math.random() > 0.9) boxes[x][y] = true
 		}
 	}
-	// // boxes[Math.floor(xBoxes / 2) - 1][Math.floor(yBoxes / 2) - 1] = true
-	// // boxes[Math.floor(xBoxes / 2) - 1][Math.floor(yBoxes / 2)] = true
-	// boxes[Math.floor(xBoxes / 2) - 1][Math.floor(yBoxes / 2) + 1] = true
 
-	// boxes[Math.floor(xBoxes / 2)][Math.floor(yBoxes / 2) - 1] = true
-	// // boxes[Math.floor(xBoxes / 2)][Math.floor(yBoxes / 2)] = true
-	// boxes[Math.floor(xBoxes / 2)][Math.floor(yBoxes / 2) + 1] = true
-
-	// // boxes[Math.floor(xBoxes / 2) + 1][Math.floor(yBoxes / 2) - 1] = true
-	// boxes[Math.floor(xBoxes / 2) + 1][Math.floor(yBoxes / 2)] = true
-	// boxes[Math.floor(xBoxes / 2) + 1][Math.floor(yBoxes / 2) + 1] = true
+	// for (
+	// 	let x = Math.floor(xBoxes / 3);
+	// 	x <= xBoxes - Math.floor(xBoxes / 3);
+	// 	x++
+	// ) {
+	// 	boxes[x] = []
+	// 	for (
+	// 		let y = Math.floor(yBoxes / 3);
+	// 		y <= yBoxes - Math.floor(yBoxes / 3);
+	// 		y++
+	// 	) {
+	// 		if (Math.random() > 0.5) boxes[x][y] = true
+	// 	}
+	// }
 }
 
 const calculateNewBoxes = () => {
+	if (paused) return
 	let newBoxes = []
 
 	// fill newBoxes with false
@@ -131,26 +153,65 @@ const drawBoxes = () => {
 	}
 }
 
+const drawButtons = () => {
+	const buttonYMargin = 10
+	buttonHeight = buttonBarHeight - buttonYMargin * 2
+	const buttonXSpacing = 30
+	buttonWidth = canvas.width / 5
+	ctx.fillStyle = "green"
+
+	startPause = {
+		xStart: buttonXSpacing,
+		yStart: canvas.height - buttonBarHeight + buttonYMargin / 2
+	}
+
+	ctx.rect(startPause.xStart, startPause.yStart, buttonWidth, buttonHeight)
+
+	ctx.fill()
+	const textSize = 30
+	ctx.font = `${textSize}px Courier`
+	ctx.textAlign = "center"
+	ctx.fillStyle = "white"
+	ctx.fillText(
+		"Go",
+		startPause.xStart + buttonWidth / 2,
+		startPause.yStart + buttonHeight / 2 + textSize / 4
+	)
+}
+
 const renderThings = (timeStamp: number) => {
 	if (start === undefined) {
 		start = timeStamp
 	}
 
-	if (timeStamp - lastFrame > 50) {
+	if (timeStamp - lastFrame > frameCadence) {
 		lastFrame = timeStamp
 		clear()
 		renderGrid()
 		calculateNewBoxes()
 		drawBoxes()
+		drawButtons()
 	}
 
 	window.requestAnimationFrame(renderThings)
 }
 
 const handleClick = (event: PointerEvent) => {
-	setBoxes()
-	// console.log(event)
-	// calculateNewBoxes()
+	const { pageX, pageY } = event
+	if (pageY > canvas.height - buttonBarHeight) {
+		if (
+			pageX > startPause.xStart &&
+			pageY > startPause.yStart &&
+			pageX < startPause.xStart + buttonWidth &&
+			pageY < startPause.yStart + buttonHeight
+		) {
+			paused = !paused
+		}
+		return
+	}
+	const boxX = Math.floor(pageX / boxSize)
+	const boxY = Math.floor(pageY / boxSize)
+	boxes[boxX][boxY] = !boxes[boxX][boxY]
 }
 
 const initialize = () => {

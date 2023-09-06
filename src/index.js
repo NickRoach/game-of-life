@@ -1,15 +1,25 @@
-var lineLength = window.innerWidth / 3;
 var start;
 var canvas;
 var ctx;
 var lastFrame = 0;
 var row = 0;
 var backgroundColor = "#000000";
-var cellColor = "turquoise";
+var cellColor = "#03A062";
 var direction = "down";
-var showGrid = false;
-var boxSize = 3;
+var showGrid = true;
+var boxSize = 10;
+var frameCadence = 100;
+var paused = true;
 var boxes = [[], []];
+var buttonBarHeight = 69;
+var buttonWidth;
+var buttonHeight;
+var startPause;
+// start/pause
+// reset
+// faster
+// slower
+// step forward
 var resizeCanvas = function () {
     canvas.height = window.innerHeight - 4;
     canvas.width = window.innerWidth;
@@ -29,11 +39,12 @@ var renderGrid = function () {
     for (var i = 0; i <= canvas.width; i += boxSize) {
         ctx.beginPath();
         ctx.moveTo(i, 0);
-        ctx.lineTo(i, canvas.height);
+        ctx.lineTo(i, Math.floor((canvas.height - buttonBarHeight - boxSize) / boxSize) *
+            boxSize);
         ctx.stroke();
     }
     // draw horizontal lines
-    for (var i = 0; i < canvas.height; i += boxSize) {
+    for (var i = 0; i < canvas.height - buttonBarHeight; i += boxSize) {
         ctx.beginPath();
         ctx.moveTo(0, i);
         ctx.lineTo(canvas.width, i);
@@ -70,26 +81,31 @@ var getNeighbors = function (boxes, x, y) {
 };
 var setBoxes = function () {
     var xBoxes = Math.floor(canvas.width / boxSize);
-    var yBoxes = Math.floor(canvas.height / boxSize);
+    var yBoxes = Math.floor((canvas.height - buttonBarHeight) / boxSize);
     for (var x = 0; x <= xBoxes; x++) {
         boxes[x] = [];
         for (var y = 0; y <= yBoxes; y++) {
             boxes[x][y] = false;
-            if (Math.random() > 0.9)
-                boxes[x][y] = true;
         }
     }
-    // // boxes[Math.floor(xBoxes / 2) - 1][Math.floor(yBoxes / 2) - 1] = true
-    // // boxes[Math.floor(xBoxes / 2) - 1][Math.floor(yBoxes / 2)] = true
-    // boxes[Math.floor(xBoxes / 2) - 1][Math.floor(yBoxes / 2) + 1] = true
-    // boxes[Math.floor(xBoxes / 2)][Math.floor(yBoxes / 2) - 1] = true
-    // // boxes[Math.floor(xBoxes / 2)][Math.floor(yBoxes / 2)] = true
-    // boxes[Math.floor(xBoxes / 2)][Math.floor(yBoxes / 2) + 1] = true
-    // // boxes[Math.floor(xBoxes / 2) + 1][Math.floor(yBoxes / 2) - 1] = true
-    // boxes[Math.floor(xBoxes / 2) + 1][Math.floor(yBoxes / 2)] = true
-    // boxes[Math.floor(xBoxes / 2) + 1][Math.floor(yBoxes / 2) + 1] = true
+    // for (
+    // 	let x = Math.floor(xBoxes / 3);
+    // 	x <= xBoxes - Math.floor(xBoxes / 3);
+    // 	x++
+    // ) {
+    // 	boxes[x] = []
+    // 	for (
+    // 		let y = Math.floor(yBoxes / 3);
+    // 		y <= yBoxes - Math.floor(yBoxes / 3);
+    // 		y++
+    // 	) {
+    // 		if (Math.random() > 0.5) boxes[x][y] = true
+    // 	}
+    // }
 };
 var calculateNewBoxes = function () {
+    if (paused)
+        return;
     var newBoxes = [];
     // fill newBoxes with false
     for (var i = 0; i < boxes.length; i++) {
@@ -120,23 +136,52 @@ var drawBoxes = function () {
         }
     }
 };
+var drawButtons = function () {
+    var buttonYMargin = 10;
+    buttonHeight = buttonBarHeight - buttonYMargin * 2;
+    var buttonXSpacing = 30;
+    buttonWidth = canvas.width / 5;
+    ctx.fillStyle = "green";
+    startPause = {
+        xStart: buttonXSpacing,
+        yStart: canvas.height - buttonBarHeight + buttonYMargin / 2
+    };
+    ctx.rect(startPause.xStart, startPause.yStart, buttonWidth, buttonHeight);
+    ctx.fill();
+    var textSize = 30;
+    ctx.font = "".concat(textSize, "px Courier");
+    ctx.textAlign = "center";
+    ctx.fillStyle = "white";
+    ctx.fillText("Go", startPause.xStart + buttonWidth / 2, startPause.yStart + buttonHeight / 2 + textSize / 4);
+};
 var renderThings = function (timeStamp) {
     if (start === undefined) {
         start = timeStamp;
     }
-    if (timeStamp - lastFrame > 50) {
+    if (timeStamp - lastFrame > frameCadence) {
         lastFrame = timeStamp;
         clear();
         renderGrid();
         calculateNewBoxes();
         drawBoxes();
+        drawButtons();
     }
     window.requestAnimationFrame(renderThings);
 };
 var handleClick = function (event) {
-    setBoxes();
-    // console.log(event)
-    // calculateNewBoxes()
+    var pageX = event.pageX, pageY = event.pageY;
+    if (pageY > canvas.height - buttonBarHeight) {
+        if (pageX > startPause.xStart &&
+            pageY > startPause.yStart &&
+            pageX < startPause.xStart + buttonWidth &&
+            pageY < startPause.yStart + buttonHeight) {
+            paused = !paused;
+        }
+        return;
+    }
+    var boxX = Math.floor(pageX / boxSize);
+    var boxY = Math.floor(pageY / boxSize);
+    boxes[boxX][boxY] = !boxes[boxX][boxY];
 };
 var initialize = function () {
     canvas = document.createElement("canvas");
