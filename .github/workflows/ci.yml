@@ -13,8 +13,6 @@ jobs:
             - uses: actions/checkout@v1
             - name: Run build script
               run: |
-                  cd frontEnd
-                  npm ci
                   npm run build
             - uses: aws-actions/configure-aws-credentials@v1
               with:
