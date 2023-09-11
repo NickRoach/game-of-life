@@ -3,7 +3,6 @@ const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   entry: "./dist/index.js",
-  watch: true,
   mode: "development",
   output: {
     path: path.resolve(__dirname, 'dist'),

@@ -3,9 +3,8 @@
 	"version": "1.0.0",
 	"private": true,
 	"scripts": {
-		"start": "concurrently --kill-others \"tsc -b -w\" \"npm run pack\" \"npm run serve\"",
-		"build": "tsc -b && npm run pack",
-		"pack": "webpack",
+		"start": "concurrently --kill-others \"tsc -b -w\" \"webpack -w\" \"npm run serve\"",
+		"build": "tsc -b && webpack",
 		"serve": "live-server dist --verbose"
 	},
 	"keywords": [],
