@@ -1,200 +1,177 @@
-var start;
-var canvas;
-var ctx;
+"use strict";
+// a function must not
+// mutate anything that was not passed in
+// ideally not mutate anything that is not a DOM element
+exports.__esModule = true;
+exports.paused = exports.buttonYMargin = exports.buttonXMargin = exports.buttonBarHeight = exports.frameCadence = exports.cadenceStep = exports.boxConcentration = exports.boxSize = exports.showGrid = exports.cellColor = exports.backgroundColor = void 0;
+var clearBoxes_1 = require("./clearBoxes");
+var randomizeBoxes_1 = require("./randomizeBoxes");
+var drawGrid_1 = require("./drawGrid");
+var clearCanvas_1 = require("./clearCanvas");
+var drawButtons_1 = require("./drawButtons");
+var resizeCanvas_1 = require("./resizeCanvas");
+var makeBoxes_1 = require("./makeBoxes");
+var drawBoxes_1 = require("./drawBoxes");
+var calculateNewBoxes_1 = require("./calculateNewBoxes");
+var redraw_1 = require("./redraw");
 var lastFrame = 0;
-var row = 0;
-var backgroundColor = "#000000";
-var cellColor = "#03A062";
-var direction = "down";
-var showGrid = true;
-var boxSize = 10;
-var frameCadence = 100;
-var paused = true;
-var boxes = [[], []];
-var buttonBarHeight = 69;
-var buttonWidth;
-var buttonHeight;
-var startPause;
-// start/pause
-// reset
-// faster
-// slower
-// step forward
-var resizeCanvas = function () {
-    canvas.height = window.innerHeight - 4;
-    canvas.width = window.innerWidth;
+exports.backgroundColor = "#000000";
+exports.cellColor = "#03A062";
+exports.showGrid = true;
+exports.boxSize = 8;
+exports.boxConcentration = 0.07;
+exports.cadenceStep = 0;
+exports.frameCadence = 69;
+exports.buttonBarHeight = 69;
+exports.buttonXMargin = 90;
+exports.buttonYMargin = 15;
+exports.paused = true;
+var clickListenerAdded = false;
+var handleStartPause = function () {
+    console.log("start/stop");
+    exports.paused = !exports.paused;
 };
-var clear = function () {
-    ctx.beginPath();
-    ctx.rect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = backgroundColor;
-    ctx.fill();
+var handleStep = function (params) {
+    console.log("Step");
+    (0, calculateNewBoxes_1.calculateNewBoxes)(params.boxes);
+    (0, redraw_1.redraw)(params);
 };
-var renderGrid = function () {
-    if (!showGrid)
-        return;
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = "#999999";
-    // draw vertical lines
-    for (var i = 0; i <= canvas.width; i += boxSize) {
-        ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i, Math.floor((canvas.height - buttonBarHeight - boxSize) / boxSize) *
-            boxSize);
-        ctx.stroke();
+var handleReset = function (params) {
+    (0, clearBoxes_1.clearBoxes)(params.boxes);
+    exports.paused = true;
+    (0, redraw_1.redraw)(params);
+};
+var handleRandomize = function (params) {
+    (0, clearBoxes_1.clearBoxes)(params.boxes);
+    (0, randomizeBoxes_1.randomizeBoxes)(params.boxConcentration, params.boxes);
+    (0, redraw_1.redraw)(params);
+};
+var handleFaster = function () {
+    console.log("Faster");
+    exports.frameCadence = exports.frameCadence / 1.2;
+};
+var handleSlower = function () {
+    console.log("Slower");
+    exports.frameCadence = exports.frameCadence * 1.2;
+};
+var handleShowGrid = function (params) {
+    exports.showGrid = !exports.showGrid;
+    (0, redraw_1.redraw)(params);
+};
+var buttons = [
+    {
+        text: "Pause",
+        pausedText: "Start",
+        color: "salmon",
+        pausedColor: "#03A062",
+        callBack: handleStartPause
+    },
+    {
+        text: "Step",
+        color: "#03A062",
+        callBack: handleStep
+    },
+    {
+        text: "Reset",
+        color: "#03A062",
+        callBack: handleReset
+    },
+    {
+        text: "Randomize",
+        color: "#03A062",
+        callBack: handleRandomize
+    },
+    {
+        text: "Faster",
+        color: "#03A062",
+        callBack: handleFaster
+    },
+    {
+        text: "Slower",
+        color: "#03A062",
+        callBack: handleSlower
+    },
+    {
+        text: "Grid",
+        color: "#03A062",
+        callBack: handleShowGrid
     }
-    // draw horizontal lines
-    for (var i = 0; i < canvas.height - buttonBarHeight; i += boxSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, i);
-        ctx.lineTo(canvas.width, i);
-        ctx.stroke();
-    }
-};
-var getNeighbors = function (boxes, x, y) {
-    var counter = 0;
-    // left top
-    if (x > 0 && y > 0 && boxes[x - 1][y - 1])
-        counter++;
-    // left middle
-    if (x > 0 && y < boxes[x].length - 1 && boxes[x - 1][y])
-        counter++;
-    // left bottom
-    if (x > 0 && boxes[x - 1][y + 1])
-        counter++;
-    // middle top
-    if (y > 0 && boxes[x][y - 1])
-        counter++;
-    // middle bottom
-    if (y < boxes[x].length - 1 && boxes[x][y + 1])
-        counter++;
-    // right top
-    if (y > 0 && x < boxes.length - 1 && boxes[x + 1][y - 1])
-        counter++;
-    // right middle
-    if (x < boxes.length - 1 && boxes[x + 1][y])
-        counter++;
-    // right bottom
-    if (x < boxes.length - 1 && y < boxes[x].length - 1 && boxes[x + 1][y + 1])
-        counter++;
-    return counter;
-};
-var setBoxes = function () {
-    var xBoxes = Math.floor(canvas.width / boxSize);
-    var yBoxes = Math.floor((canvas.height - buttonBarHeight) / boxSize);
-    for (var x = 0; x <= xBoxes; x++) {
-        boxes[x] = [];
-        for (var y = 0; y <= yBoxes; y++) {
-            boxes[x][y] = false;
-        }
-    }
-    // for (
-    // 	let x = Math.floor(xBoxes / 3);
-    // 	x <= xBoxes - Math.floor(xBoxes / 3);
-    // 	x++
-    // ) {
-    // 	boxes[x] = []
-    // 	for (
-    // 		let y = Math.floor(yBoxes / 3);
-    // 		y <= yBoxes - Math.floor(yBoxes / 3);
-    // 		y++
-    // 	) {
-    // 		if (Math.random() > 0.5) boxes[x][y] = true
-    // 	}
-    // }
-};
-var calculateNewBoxes = function () {
-    if (paused)
-        return;
-    var newBoxes = [];
-    // fill newBoxes with false
-    for (var i = 0; i < boxes.length; i++) {
-        newBoxes.push([]);
-        for (var j = 0; j < boxes[i].length; j++)
-            newBoxes[i].push(false);
-    }
-    for (var x = 0; x < boxes.length; x++) {
-        for (var y = 0; y < boxes[x].length; y++) {
-            var n = getNeighbors(boxes, x, y);
-            if (n < 2 || n > 3)
-                newBoxes[x][y] = false;
-            if ((boxes[x][y] === true && n === 2) || n === 3)
-                newBoxes[x][y] = true;
-            if (boxes[x][y] === false && n === 3)
-                newBoxes[x][y] = true;
-        }
-    }
-    boxes = newBoxes.map(function (x) { return x; });
-};
-var drawBoxes = function () {
-    ctx.fillStyle = cellColor;
-    for (var x = 0; x < boxes.length; x++) {
-        for (var y = 0; y < boxes[x].length; y++) {
-            if (boxes[x][y] === true) {
-                ctx.fillRect(x * boxSize, y * boxSize, boxSize, boxSize);
-            }
-        }
-    }
-};
-var drawButtons = function () {
-    var buttonYMargin = 10;
-    buttonHeight = buttonBarHeight - buttonYMargin * 2;
-    var buttonXSpacing = 30;
-    buttonWidth = canvas.width / 5;
-    ctx.fillStyle = "green";
-    startPause = {
-        xStart: buttonXSpacing,
-        yStart: canvas.height - buttonBarHeight + buttonYMargin / 2
-    };
-    ctx.rect(startPause.xStart, startPause.yStart, buttonWidth, buttonHeight);
-    ctx.fill();
-    var textSize = 30;
-    ctx.font = "".concat(textSize, "px Courier");
-    ctx.textAlign = "center";
-    ctx.fillStyle = "white";
-    ctx.fillText("Go", startPause.xStart + buttonWidth / 2, startPause.yStart + buttonHeight / 2 + textSize / 4);
-};
-var renderThings = function (timeStamp) {
-    if (start === undefined) {
-        start = timeStamp;
-    }
-    if (timeStamp - lastFrame > frameCadence) {
-        lastFrame = timeStamp;
-        clear();
-        renderGrid();
-        calculateNewBoxes();
-        drawBoxes();
-        drawButtons();
-    }
-    window.requestAnimationFrame(renderThings);
-};
-var handleClick = function (event) {
+];
+var handleClick = function (event, renderedButtons, boxes, canvas, ctx, buttonBarHeight, buttonXMargin, buttonYMargin, buttons) {
     var pageX = event.pageX, pageY = event.pageY;
-    if (pageY > canvas.height - buttonBarHeight) {
-        if (pageX > startPause.xStart &&
-            pageY > startPause.yStart &&
-            pageX < startPause.xStart + buttonWidth &&
-            pageY < startPause.yStart + buttonHeight) {
-            paused = !paused;
+    var callbackParams = {
+        boxes: boxes,
+        canvas: canvas,
+        ctx: ctx,
+        boxConcentration: exports.boxConcentration,
+        buttonBarHeight: buttonBarHeight,
+        buttonXMargin: buttonXMargin,
+        buttonYMargin: buttonYMargin,
+        buttons: buttons
+    };
+    var isClickInButton = function (button) {
+        if (pageX > button.xStart &&
+            pageY > button.yStart &&
+            pageX < button.xEnd &&
+            pageY < button.yEnd) {
+            return true;
         }
-        return;
+        return false;
+    };
+    for (var _i = 0, renderedButtons_1 = renderedButtons; _i < renderedButtons_1.length; _i++) {
+        var button = renderedButtons_1[_i];
+        if (isClickInButton(button)) {
+            button.callback(callbackParams);
+            return;
+        }
     }
-    var boxX = Math.floor(pageX / boxSize);
-    var boxY = Math.floor(pageY / boxSize);
+    if (pageY > boxes[0].length * exports.boxSize)
+        return;
+    var boxX = Math.floor(pageX / exports.boxSize);
+    var boxY = Math.floor(pageY / exports.boxSize);
     boxes[boxX][boxY] = !boxes[boxX][boxY];
+    (0, clearCanvas_1.clearCanvas)(canvas, ctx);
+    if (exports.showGrid)
+        (0, drawGrid_1.drawGrid)(boxes, ctx);
+    (0, drawBoxes_1.drawBoxes)(boxes, ctx);
+    (0, drawButtons_1.drawButtons)(buttonBarHeight, buttonXMargin, buttonYMargin, buttons, canvas, ctx);
+};
+var renderLoop = function (timeStamp, boxes, buttons, buttonBarHeight, buttonXMargin, buttonYMargin, canvas, ctx) {
+    if (timeStamp - lastFrame > exports.frameCadence) {
+        lastFrame = timeStamp;
+        if (!exports.paused) {
+            (0, clearCanvas_1.clearCanvas)(canvas, ctx);
+            if (exports.showGrid)
+                (0, drawGrid_1.drawGrid)(boxes, ctx);
+            (0, calculateNewBoxes_1.calculateNewBoxes)(boxes);
+            (0, drawBoxes_1.drawBoxes)(boxes, ctx);
+        }
+        var renderedButtons_2 = (0, drawButtons_1.drawButtons)(buttonBarHeight, buttonXMargin, buttonYMargin, buttons, canvas, ctx);
+        if (!clickListenerAdded)
+            canvas.addEventListener("click", function (e) {
+                return handleClick(e, renderedButtons_2, boxes, canvas, ctx, buttonBarHeight, buttonXMargin, buttonYMargin, buttons);
+            });
+        clickListenerAdded = true;
+    }
+    window.requestAnimationFrame(function (timeStamp) {
+        return renderLoop(timeStamp, boxes, buttons, buttonBarHeight, buttonXMargin, buttonYMargin, canvas, ctx);
+    });
 };
 var initialize = function () {
-    canvas = document.createElement("canvas");
+    var canvas = document.createElement("canvas");
     var body = document.getElementById("body");
+    var ctx = canvas.getContext("2d");
     body.style.margin = "0px";
-    body.style.backgroundColor = backgroundColor;
-    resizeCanvas();
+    body.style.backgroundColor = exports.backgroundColor;
+    (0, resizeCanvas_1.resizeCanvas)(canvas);
     canvas.id = "canvas";
     body.appendChild(canvas);
-    ctx = canvas.getContext("2d");
-    canvas.addEventListener("click", handleClick);
-    setBoxes();
-    window.requestAnimationFrame(renderThings);
+    window.onresize = function () { return (0, resizeCanvas_1.resizeCanvas)(canvas); };
+    var boxes = (0, makeBoxes_1.makeBoxes)(canvas);
+    if (exports.showGrid)
+        (0, drawGrid_1.drawGrid)(boxes, ctx);
+    window.requestAnimationFrame(function (timeStamp) {
+        return renderLoop(timeStamp, boxes, buttons, exports.buttonBarHeight, exports.buttonXMargin, exports.buttonYMargin, canvas, ctx);
+    });
 };
 document.body.onload = initialize;
-window.onresize = resizeCanvas;

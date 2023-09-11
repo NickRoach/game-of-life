@@ -1,232 +1,280 @@
-let start: number
-let canvas: HTMLCanvasElement
-let ctx: CanvasRenderingContext2D
-let lastFrame = 0
-let row = 0
-const backgroundColor = "#000000"
-const cellColor = "#03A062"
-let direction = "down"
-const showGrid = true
-const boxSize = 10
-const frameCadence = 100
-let paused = true
-let boxes: boolean[][] = [[], []]
-const buttonBarHeight = 69
-let buttonWidth: number
-let buttonHeight: number
-let startPause: {
+// a function must not
+// mutate anything that was not passed in
+// ideally not mutate anything that is not a DOM element
+
+import { clearBoxes } from "./clearBoxes"
+import { randomizeBoxes } from "./randomizeBoxes"
+import { drawGrid } from "./drawGrid"
+import { clearCanvas } from "./clearCanvas"
+import { drawButtons } from "./drawButtons"
+import { resizeCanvas } from "./resizeCanvas"
+import { makeBoxes } from "./makeBoxes"
+import { drawBoxes } from "./drawBoxes"
+import { calculateNewBoxes } from "./calculateNewBoxes"
+import { redraw } from "./redraw"
+
+let lastFrame: number = 0
+export const backgroundColor: string = "#000000"
+export const cellColor: string = "#03A062"
+export let showGrid: boolean = true
+export const boxSize: number = 8
+export const boxConcentration: number = 0.07
+export const cadenceStep = 0
+export let frameCadence: number = 69
+export const buttonBarHeight: number = 69
+export const buttonXMargin: number = 90
+export const buttonYMargin: number = 15
+export let paused: boolean = true
+let clickListenerAdded = false
+
+export type Boxes = [boolean[]]
+
+export type Button = {
+	text: string
+	pausedText?: string
+	color: string
+	pausedColor?: string
+	callBack: Function
+}
+
+export type RenderedButton = {
 	xStart: number
 	yStart: number
+	xEnd: number
+	yEnd: number
+	callback: Function
 }
 
-// start/pause
-// reset
-// faster
-// slower
-// step forward
-
-const resizeCanvas = () => {
-	canvas.height = window.innerHeight - 4
-	canvas.width = window.innerWidth
+export type CallbackParams = {
+	boxes: Boxes
+	canvas: HTMLCanvasElement
+	ctx: CanvasRenderingContext2D
+	boxConcentration: number
+	buttonBarHeight: number
+	buttonXMargin: number
+	buttonYMargin: number
+	buttons: Button[]
 }
 
-const clear = () => {
-	ctx.beginPath()
-	ctx.rect(0, 0, canvas.width, canvas.height)
-	ctx.fillStyle = backgroundColor
-	ctx.fill()
+const handleStartPause = () => {
+	console.log("start/stop")
+	paused = !paused
 }
 
-const renderGrid = () => {
-	if (!showGrid) return
-	ctx.lineWidth = 1
-	ctx.strokeStyle = "#999999"
-	// draw vertical lines
-	for (let i = 0; i <= canvas.width; i += boxSize) {
-		ctx.beginPath()
-		ctx.moveTo(i, 0)
-		ctx.lineTo(
-			i,
-			Math.floor((canvas.height - buttonBarHeight - boxSize) / boxSize) *
-				boxSize
-		)
-		ctx.stroke()
+const handleStep = (params: CallbackParams) => {
+	console.log("Step")
+	calculateNewBoxes(params.boxes)
+	redraw(params)
+}
+
+const handleReset = (params: CallbackParams) => {
+	clearBoxes(params.boxes)
+	paused = true
+	redraw(params)
+}
+
+const handleRandomize = (params: CallbackParams) => {
+	clearBoxes(params.boxes)
+	randomizeBoxes(params.boxConcentration, params.boxes)
+	redraw(params)
+}
+
+const handleFaster = () => {
+	console.log("Faster")
+	frameCadence = frameCadence / 1.2
+}
+
+const handleSlower = () => {
+	console.log("Slower")
+	frameCadence = frameCadence * 1.2
+}
+
+const handleShowGrid = (params: CallbackParams) => {
+	showGrid = !showGrid
+	redraw(params)
+}
+
+const buttons: Button[] = [
+	{
+		text: "Pause",
+		pausedText: "Start",
+		color: "salmon",
+		pausedColor: "#03A062",
+		callBack: handleStartPause
+	},
+	{
+		text: "Step",
+		color: "#03A062",
+		callBack: handleStep
+	},
+	{
+		text: "Reset",
+		color: "#03A062",
+		callBack: handleReset
+	},
+	{
+		text: "Randomize",
+		color: "#03A062",
+		callBack: handleRandomize
+	},
+	{
+		text: "Faster",
+		color: "#03A062",
+		callBack: handleFaster
+	},
+	{
+		text: "Slower",
+		color: "#03A062",
+		callBack: handleSlower
+	},
+	{
+		text: "Grid",
+		color: "#03A062",
+		callBack: handleShowGrid
 	}
+]
 
-	// draw horizontal lines
-	for (let i = 0; i < canvas.height - buttonBarHeight; i += boxSize) {
-		ctx.beginPath()
-		ctx.moveTo(0, i)
-		ctx.lineTo(canvas.width, i)
-		ctx.stroke()
-	}
-}
-
-const getNeighbors = (boxes, x, y) => {
-	let counter = 0
-
-	// left top
-	if (x > 0 && y > 0 && boxes[x - 1][y - 1]) counter++
-
-	// left middle
-	if (x > 0 && y < boxes[x].length - 1 && boxes[x - 1][y]) counter++
-
-	// left bottom
-	if (x > 0 && boxes[x - 1][y + 1]) counter++
-
-	// middle top
-	if (y > 0 && boxes[x][y - 1]) counter++
-
-	// middle bottom
-	if (y < boxes[x].length - 1 && boxes[x][y + 1]) counter++
-
-	// right top
-	if (y > 0 && x < boxes.length - 1 && boxes[x + 1][y - 1]) counter++
-
-	// right middle
-	if (x < boxes.length - 1 && boxes[x + 1][y]) counter++
-
-	// right bottom
-	if (x < boxes.length - 1 && y < boxes[x].length - 1 && boxes[x + 1][y + 1])
-		counter++
-
-	return counter
-}
-
-const setBoxes = () => {
-	const xBoxes = Math.floor(canvas.width / boxSize)
-	const yBoxes = Math.floor((canvas.height - buttonBarHeight) / boxSize)
-	for (let x = 0; x <= xBoxes; x++) {
-		boxes[x] = []
-		for (let y = 0; y <= yBoxes; y++) {
-			boxes[x][y] = false
-		}
-	}
-
-	// for (
-	// 	let x = Math.floor(xBoxes / 3);
-	// 	x <= xBoxes - Math.floor(xBoxes / 3);
-	// 	x++
-	// ) {
-	// 	boxes[x] = []
-	// 	for (
-	// 		let y = Math.floor(yBoxes / 3);
-	// 		y <= yBoxes - Math.floor(yBoxes / 3);
-	// 		y++
-	// 	) {
-	// 		if (Math.random() > 0.5) boxes[x][y] = true
-	// 	}
-	// }
-}
-
-const calculateNewBoxes = () => {
-	if (paused) return
-	let newBoxes = []
-
-	// fill newBoxes with false
-	for (let i = 0; i < boxes.length; i++) {
-		newBoxes.push([])
-		for (let j = 0; j < boxes[i].length; j++) newBoxes[i].push(false)
-	}
-
-	for (let x = 0; x < boxes.length; x++) {
-		for (let y = 0; y < boxes[x].length; y++) {
-			const n = getNeighbors(boxes, x, y)
-			if (n < 2 || n > 3) newBoxes[x][y] = false
-			if ((boxes[x][y] === true && n === 2) || n === 3)
-				newBoxes[x][y] = true
-			if (boxes[x][y] === false && n === 3) newBoxes[x][y] = true
-		}
-	}
-
-	boxes = newBoxes.map((x) => x)
-}
-
-const drawBoxes = () => {
-	ctx.fillStyle = cellColor
-	for (let x = 0; x < boxes.length; x++) {
-		for (let y = 0; y < boxes[x].length; y++) {
-			if (boxes[x][y] === true) {
-				ctx.fillRect(x * boxSize, y * boxSize, boxSize, boxSize)
-			}
-		}
-	}
-}
-
-const drawButtons = () => {
-	const buttonYMargin = 10
-	buttonHeight = buttonBarHeight - buttonYMargin * 2
-	const buttonXSpacing = 30
-	buttonWidth = canvas.width / 5
-	ctx.fillStyle = "green"
-
-	startPause = {
-		xStart: buttonXSpacing,
-		yStart: canvas.height - buttonBarHeight + buttonYMargin / 2
-	}
-
-	ctx.rect(startPause.xStart, startPause.yStart, buttonWidth, buttonHeight)
-
-	ctx.fill()
-	const textSize = 30
-	ctx.font = `${textSize}px Courier`
-	ctx.textAlign = "center"
-	ctx.fillStyle = "white"
-	ctx.fillText(
-		"Go",
-		startPause.xStart + buttonWidth / 2,
-		startPause.yStart + buttonHeight / 2 + textSize / 4
-	)
-}
-
-const renderThings = (timeStamp: number) => {
-	if (start === undefined) {
-		start = timeStamp
-	}
-
-	if (timeStamp - lastFrame > frameCadence) {
-		lastFrame = timeStamp
-		clear()
-		renderGrid()
-		calculateNewBoxes()
-		drawBoxes()
-		drawButtons()
-	}
-
-	window.requestAnimationFrame(renderThings)
-}
-
-const handleClick = (event: PointerEvent) => {
+const handleClick = (
+	event: MouseEvent,
+	renderedButtons: RenderedButton[],
+	boxes: Boxes,
+	canvas: HTMLCanvasElement,
+	ctx: CanvasRenderingContext2D,
+	buttonBarHeight: number,
+	buttonXMargin: number,
+	buttonYMargin: number,
+	buttons: Button[]
+) => {
 	const { pageX, pageY } = event
-	if (pageY > canvas.height - buttonBarHeight) {
-		if (
-			pageX > startPause.xStart &&
-			pageY > startPause.yStart &&
-			pageX < startPause.xStart + buttonWidth &&
-			pageY < startPause.yStart + buttonHeight
-		) {
-			paused = !paused
-		}
-		return
+
+	const callbackParams: CallbackParams = {
+		boxes,
+		canvas,
+		ctx,
+		boxConcentration,
+		buttonBarHeight,
+		buttonXMargin,
+		buttonYMargin,
+		buttons
 	}
+	const isClickInButton = (button: RenderedButton) => {
+		if (
+			pageX > button.xStart &&
+			pageY > button.yStart &&
+			pageX < button.xEnd &&
+			pageY < button.yEnd
+		) {
+			return true
+		}
+		return false
+	}
+
+	for (let button of renderedButtons) {
+		if (isClickInButton(button)) {
+			button.callback(callbackParams)
+			return
+		}
+	}
+
+	if (pageY > boxes[0].length * boxSize) return
 	const boxX = Math.floor(pageX / boxSize)
 	const boxY = Math.floor(pageY / boxSize)
 	boxes[boxX][boxY] = !boxes[boxX][boxY]
+	clearCanvas(canvas, ctx)
+	if (showGrid) drawGrid(boxes, ctx)
+	drawBoxes(boxes, ctx)
+	drawButtons(
+		buttonBarHeight,
+		buttonXMargin,
+		buttonYMargin,
+		buttons,
+		canvas,
+		ctx
+	)
+}
+
+const renderLoop = (
+	timeStamp: number,
+	boxes: Boxes,
+	buttons: Button[],
+	buttonBarHeight: number,
+	buttonXMargin: number,
+	buttonYMargin: number,
+	canvas: HTMLCanvasElement,
+	ctx: CanvasRenderingContext2D
+) => {
+	if (timeStamp - lastFrame > frameCadence) {
+		lastFrame = timeStamp
+		if (!paused) {
+			clearCanvas(canvas, ctx)
+			if (showGrid) drawGrid(boxes, ctx)
+			calculateNewBoxes(boxes)
+			drawBoxes(boxes, ctx)
+		}
+		const renderedButtons = drawButtons(
+			buttonBarHeight,
+			buttonXMargin,
+			buttonYMargin,
+			buttons,
+			canvas,
+			ctx
+		)
+		if (!clickListenerAdded)
+			canvas.addEventListener("click", (e) =>
+				handleClick(
+					e,
+					renderedButtons,
+					boxes,
+					canvas,
+					ctx,
+					buttonBarHeight,
+					buttonXMargin,
+					buttonYMargin,
+					buttons
+				)
+			)
+		clickListenerAdded = true
+	}
+
+	window.requestAnimationFrame((timeStamp) =>
+		renderLoop(
+			timeStamp,
+			boxes,
+			buttons,
+			buttonBarHeight,
+			buttonXMargin,
+			buttonYMargin,
+			canvas,
+			ctx
+		)
+	)
 }
 
 const initialize = () => {
-	canvas = document.createElement("canvas")
+	const canvas = document.createElement("canvas")
 	const body = document.getElementById("body")
+	const ctx = canvas.getContext("2d")
 	body.style.margin = "0px"
 	body.style.backgroundColor = backgroundColor
-	resizeCanvas()
+	resizeCanvas(canvas)
 	canvas.id = "canvas"
 	body.appendChild(canvas)
-	ctx = canvas.getContext("2d")
-	canvas.addEventListener("click", handleClick)
-	setBoxes()
-	window.requestAnimationFrame(renderThings)
+	window.onresize = () => resizeCanvas(canvas)
+	const boxes = makeBoxes(canvas)
+	if (showGrid) drawGrid(boxes, ctx)
+
+	window.requestAnimationFrame((timeStamp) =>
+		renderLoop(
+			timeStamp,
+			boxes,
+			buttons,
+			buttonBarHeight,
+			buttonXMargin,
+			buttonYMargin,
+			canvas,
+			ctx
+		)
+	)
 }
 
 document.body.onload = initialize
-window.onresize = resizeCanvas

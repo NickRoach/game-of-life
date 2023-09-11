@@ -4,7 +4,7 @@
 	"private": true,
 	"scripts": {
 		"start": "concurrently --kill-others \"npm run build\" \"npm run pack\" \"npm run serve\"",
-		"build": "tsc -w",
+		"build": "tsc -w --clean",
 		"pack": "webpack",
 		"serve": "live-server dist --verbose"
 	},
