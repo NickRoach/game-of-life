@@ -181,17 +181,7 @@ const handleClick = (
 	const boxX = Math.floor(pageX / boxSize)
 	const boxY = Math.floor(pageY / boxSize)
 	boxes[boxX][boxY] = !boxes[boxX][boxY]
-	clearCanvas(canvas, ctx)
-	if (showGrid) drawGrid(boxes, ctx)
-	drawBoxes(boxes, ctx)
-	drawButtons(
-		buttonBarHeight,
-		buttonXMargin,
-		buttonYMargin,
-		buttons,
-		canvas,
-		ctx
-	)
+	redraw(callbackParams)
 }
 
 const renderLoop = (
