@@ -3,8 +3,8 @@
 	"version": "1.0.0",
 	"private": true,
 	"scripts": {
-		"start": "concurrently --kill-others \"npm run build\" \"npm run pack\" \"npm run serve\"",
-		"build": "tsc -w --clean",
+		"start": "concurrently --kill-others \"tsc -b -w\" \"npm run pack\" \"npm run serve\"",
+		"build": "tsc -b && npm run pack",
 		"pack": "webpack",
 		"serve": "live-server dist --verbose"
 	},
@@ -13,6 +13,7 @@
 	"license": "ISC",
 	"devDependencies": {
 		"concurrently": "^8.2.1",
+		"copy-webpack-plugin": "^11.0.0",
 		"live-server": "^1.2.2",
 		"typescript": "4.5.5",
 		"webpack": "^5.88.2",
