@@ -177,6 +177,7 @@ const handleClick = (
 	}
 
 	if (pageY > boxes[0].length * boxSize) return
+	if (!paused) return
 	const boxX = Math.floor(pageX / boxSize)
 	const boxY = Math.floor(pageY / boxSize)
 	boxes[boxX][boxY] = !boxes[boxX][boxY]
