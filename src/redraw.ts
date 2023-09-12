@@ -10,7 +10,6 @@ export const redraw = (params: CallbackParams) => {
 	drawBoxes(params.boxes, params.ctx)
 	drawButtons(
 		params.buttonBarHeight,
-		params.buttonXMargin,
 		params.buttonYMargin,
 		params.buttons,
 		params.canvas,

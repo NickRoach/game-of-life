@@ -12,6 +12,7 @@ import { makeBoxes } from "./makeBoxes"
 import { drawBoxes } from "./drawBoxes"
 import { calculateNewBoxes } from "./calculateNewBoxes"
 import { redraw } from "./redraw"
+import { createSpider } from "./createSpider"
 
 let lastFrame: number = 0
 export const backgroundColor: string = "#000000"
@@ -22,8 +23,10 @@ export const boxConcentration: number = 0.07
 export const cadenceStep = 0
 export let frameCadence: number = 69
 export const buttonBarHeight: number = 69
-export const buttonXMargin: number = 90
 export const buttonYMargin: number = 15
+export const textSize = 17
+export const font = "Arial"
+export const buttonWidth = 100
 export let paused: boolean = true
 let clickListenerAdded = false
 
@@ -51,7 +54,6 @@ export type CallbackParams = {
 	ctx: CanvasRenderingContext2D
 	boxConcentration: number
 	buttonBarHeight: number
-	buttonXMargin: number
 	buttonYMargin: number
 	buttons: Button[]
 }
@@ -59,6 +61,11 @@ export type CallbackParams = {
 const handleStartPause = () => {
 	console.log("start/stop")
 	paused = !paused
+}
+
+const handleDrawSpider = (params: CallbackParams) => {
+	createSpider(params.boxes)
+	drawBoxes(params.boxes, params.ctx)
 }
 
 const handleStep = (params: CallbackParams) => {
@@ -80,12 +87,10 @@ const handleRandomize = (params: CallbackParams) => {
 }
 
 const handleFaster = () => {
-	console.log("Faster")
 	frameCadence = frameCadence / 1.2
 }
 
 const handleSlower = () => {
-	console.log("Slower")
 	frameCadence = frameCadence * 1.2
 }
 
@@ -97,10 +102,20 @@ const handleShowGrid = (params: CallbackParams) => {
 const buttons: Button[] = [
 	{
 		text: "Pause",
-		pausedText: "Start",
+		pausedText: "Go",
 		color: "salmon",
 		pausedColor: "#03A062",
 		callBack: handleStartPause
+	},
+	{
+		text: "Spider",
+		color: "blue",
+		callBack: handleDrawSpider
+	},
+	{
+		text: "Random",
+		color: "#03A062",
+		callBack: handleRandomize
 	},
 	{
 		text: "Step",
@@ -113,11 +128,6 @@ const buttons: Button[] = [
 		callBack: handleReset
 	},
 	{
-		text: "Randomize",
-		color: "#03A062",
-		callBack: handleRandomize
-	},
-	{
 		text: "Faster",
 		color: "#03A062",
 		callBack: handleFaster
@@ -126,11 +136,6 @@ const buttons: Button[] = [
 		text: "Slower",
 		color: "#03A062",
 		callBack: handleSlower
-	},
-	{
-		text: "Grid",
-		color: "#03A062",
-		callBack: handleShowGrid
 	}
 ]
 
@@ -141,7 +146,6 @@ const handleClick = (
 	canvas: HTMLCanvasElement,
 	ctx: CanvasRenderingContext2D,
 	buttonBarHeight: number,
-	buttonXMargin: number,
 	buttonYMargin: number,
 	buttons: Button[]
 ) => {
@@ -153,7 +157,6 @@ const handleClick = (
 		ctx,
 		boxConcentration,
 		buttonBarHeight,
-		buttonXMargin,
 		buttonYMargin,
 		buttons
 	}
@@ -189,7 +192,6 @@ const renderLoop = (
 	boxes: Boxes,
 	buttons: Button[],
 	buttonBarHeight: number,
-	buttonXMargin: number,
 	buttonYMargin: number,
 	canvas: HTMLCanvasElement,
 	ctx: CanvasRenderingContext2D
@@ -198,13 +200,12 @@ const renderLoop = (
 		lastFrame = timeStamp
 		if (!paused) {
 			clearCanvas(canvas, ctx)
-			if (showGrid) drawGrid(boxes, ctx)
+			drawGrid(boxes, ctx)
 			calculateNewBoxes(boxes)
 			drawBoxes(boxes, ctx)
 		}
 		const renderedButtons = drawButtons(
 			buttonBarHeight,
-			buttonXMargin,
 			buttonYMargin,
 			buttons,
 			canvas,
@@ -219,7 +220,6 @@ const renderLoop = (
 					canvas,
 					ctx,
 					buttonBarHeight,
-					buttonXMargin,
 					buttonYMargin,
 					buttons
 				)
@@ -233,7 +233,6 @@ const renderLoop = (
 			boxes,
 			buttons,
 			buttonBarHeight,
-			buttonXMargin,
 			buttonYMargin,
 			canvas,
 			ctx
@@ -252,15 +251,13 @@ const initialize = () => {
 	body.appendChild(canvas)
 	window.onresize = () => resizeCanvas(canvas)
 	const boxes = makeBoxes(canvas)
-	if (showGrid) drawGrid(boxes, ctx)
-
+	drawGrid(boxes, ctx)
 	window.requestAnimationFrame((timeStamp) =>
 		renderLoop(
 			timeStamp,
 			boxes,
 			buttons,
 			buttonBarHeight,
-			buttonXMargin,
 			buttonYMargin,
 			canvas,
 			ctx

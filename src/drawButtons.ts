@@ -1,8 +1,15 @@
-import { Button, RenderedButton, buttonBarHeight, paused } from "."
+import {
+	Button,
+	RenderedButton,
+	buttonBarHeight,
+	buttonWidth,
+	font,
+	paused,
+	textSize
+} from "."
 
 export const drawButtons = (
 	buttonHeight: number,
-	buttonXMargin: number,
 	buttonYMargin: number,
 	buttons: Button[],
 	canvas: HTMLCanvasElement,
@@ -13,14 +20,26 @@ export const drawButtons = (
 	const renderedButtons: RenderedButton[] = []
 
 	const buttonTop = canvas.height - buttonYMargin - buttonHeight
-	const buttonWidth =
-		(canvas.width - buttonXMargin * (buttons.length + 1)) / buttons.length
+
+	const adjustedTextSize = Math.min(textSize / (700 / canvas.width), textSize)
+	const adjustedButtonWidth = Math.min(
+		buttonWidth / (1000 / canvas.width),
+		buttonWidth
+	)
+	const adjustedButtonHeight = Math.min(
+		buttonHeight / (700 / canvas.width),
+		buttonHeight
+	)
+
+	const buttonXMargin =
+		(canvas.width - buttons.length * adjustedButtonWidth) /
+		(buttons.length + 1)
 
 	for (let i = 0; i < buttons.length; i++) {
 		const button = buttons[i]
-		const xStart = buttonXMargin * (i + 1) + buttonWidth * i
+		const xStart = buttonXMargin * (i + 1) + adjustedButtonWidth * i
 		ctx.beginPath()
-		ctx.rect(xStart, buttonTop, buttonWidth, buttonHeight)
+		ctx.rect(xStart, buttonTop, adjustedButtonWidth, adjustedButtonHeight)
 		ctx.fillStyle = paused
 			? button.pausedColor || button.color
 			: button.color
@@ -30,19 +49,18 @@ export const drawButtons = (
 		renderedButtons.push({
 			xStart,
 			yStart: buttonTop,
-			xEnd: xStart + buttonWidth,
-			yEnd: buttonTop + buttonHeight,
+			xEnd: xStart + adjustedButtonWidth,
+			yEnd: buttonTop + adjustedButtonHeight,
 			callback: button.callBack
 		})
 
-		const textSize = 30
-		ctx.font = `${textSize}px Courier`
+		ctx.font = `${adjustedTextSize}px ${font}`
 		ctx.textAlign = "center"
 		ctx.fillStyle = "white"
 		ctx.fillText(
 			paused ? button.pausedText || button.text : button.text,
-			xStart + buttonWidth / 2,
-			buttonTop + buttonHeight / 2 + textSize / 4
+			xStart + adjustedButtonWidth / 2,
+			buttonTop + adjustedButtonHeight / 2 + textSize / 4
 		)
 	}
 
