@@ -59,7 +59,6 @@ export type CallbackParams = {
 }
 
 const handleStartPause = () => {
-	console.log("start/stop")
 	paused = !paused
 }
 
@@ -69,7 +68,7 @@ const handleDrawSpider = (params: CallbackParams) => {
 }
 
 const handleStep = (params: CallbackParams) => {
-	console.log("Step")
+	if (!paused) return
 	calculateNewBoxes(params.boxes)
 	redraw(params)
 }
