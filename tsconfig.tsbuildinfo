@@ -1,0 +1,1 @@
+{"root":["./src/calculateNewBoxes.ts","./src/clearBoxes.ts","./src/clearCanvas.ts","./src/createSpider.ts","./src/drawBoxes.ts","./src/drawButtons.ts","./src/drawGrid.ts","./src/getNeighbors.ts","./src/index.ts","./src/makeBoxes.ts","./src/randomizeBoxes.ts","./src/redraw.ts","./src/resizeCanvas.ts"],"version":"6.0.2"}
