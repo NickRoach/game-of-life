@@ -2,17 +2,17 @@
 // mutate anything that was not passed in
 // ideally not mutate anything that is not a DOM element
 
-import { clearBoxes } from "./clearBoxes"
-import { randomizeBoxes } from "./randomizeBoxes"
-import { drawGrid } from "./drawGrid"
-import { clearCanvas } from "./clearCanvas"
-import { drawButtons } from "./drawButtons"
-import { resizeCanvas } from "./resizeCanvas"
-import { makeBoxes } from "./makeBoxes"
-import { drawBoxes } from "./drawBoxes"
 import { calculateNewBoxes } from "./calculateNewBoxes"
-import { redraw } from "./redraw"
+import { clearBoxes } from "./clearBoxes"
+import { clearCanvas } from "./clearCanvas"
 import { createSpider } from "./createSpider"
+import { drawBoxes } from "./drawBoxes"
+import { drawButtons } from "./drawButtons"
+import { drawGrid } from "./drawGrid"
+import { makeBoxes } from "./makeBoxes"
+import { randomizeBoxes } from "./randomizeBoxes"
+import { redraw } from "./redraw"
+import { resizeCanvas } from "./resizeCanvas"
 
 let lastFrame: number = 0
 export const backgroundColor: string = "#000000"
@@ -243,25 +243,27 @@ const initialize = () => {
 	const canvas = document.createElement("canvas")
 	const body = document.getElementById("body")
 	const ctx = canvas.getContext("2d")
-	body.style.margin = "0px"
-	body.style.backgroundColor = backgroundColor
-	resizeCanvas(canvas)
-	canvas.id = "canvas"
-	body.appendChild(canvas)
-	window.onresize = () => resizeCanvas(canvas)
-	const boxes = makeBoxes(canvas)
-	drawGrid(boxes, ctx)
-	window.requestAnimationFrame((timeStamp) =>
-		renderLoop(
-			timeStamp,
-			boxes,
-			buttons,
-			buttonBarHeight,
-			buttonYMargin,
-			canvas,
-			ctx
+	if (ctx && body) {
+		body.style.margin = "0px"
+		body.style.backgroundColor = backgroundColor
+		resizeCanvas(canvas)
+		canvas.id = "canvas"
+		body.appendChild(canvas)
+		window.onresize = () => resizeCanvas(canvas)
+		const boxes = makeBoxes(canvas)
+		drawGrid(boxes, ctx)
+		window.requestAnimationFrame((timeStamp) =>
+			renderLoop(
+				timeStamp,
+				boxes,
+				buttons,
+				buttonBarHeight,
+				buttonYMargin,
+				canvas,
+				ctx
+			)
 		)
-	)
+	}
 }
 
 document.body.onload = initialize
